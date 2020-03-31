@@ -18,15 +18,15 @@ async with LimooDriver('https://web.limoo.im/Limonad', 'test_bot_username', 'tes
     
     # A listener which is notified whenever a new message is sent in any conversation of the workspace
     async def listener(ld, event):
-        print(event['message']['text'])
+        print(event['data']['message']['text'])
 
         # Send a message in the thread of the new message (msg can be root of a thread only if its threadRootId is null)
-	if not event['message']['thread_root_id']:
+	if not event['data']['message']['thread_root_id']:
 	    body = {
                 'text': 'Got your message.',
-		'thread_root_id': event['message']['thread_root_id'],
+		'thread_root_id': event['data']['message']['thread_root_id'],
             }
-            await ld.send(event['message']['conversation_id'], body)
+            await ld.send(event['data']['message']['conversation_id'], body)
 
     # Register the listener
     ld.add_listener(listener)
