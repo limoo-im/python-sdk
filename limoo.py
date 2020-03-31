@@ -282,8 +282,10 @@ LimooDriver.Method Enum.')
                     event = json.loads(msg.data)
                 except json.JSONDecodeError:
                     continue
-                if (event['event'] != 'message_created'
-                    or event['data']['message']['user_id'] == self._my_id):
+                if (
+                        (event['event'] != 'message_created'
+                         or event['data']['message']['user_id'] == self._my_id)
+                        and event['event'] != 'added_to_conversation'):
                     event = None
             else:
                 if msg.type is aiohttp.WSMsgType.CLOSE:
@@ -291,4 +293,4 @@ LimooDriver.Method Enum.')
                 else:
                     err = WebSocketError()
                 raise err
-        return event['data']
+        return event
