@@ -3,9 +3,12 @@ import contextlib
 import enum
 import inspect
 import json
+import logging
 import urllib.parse
 
 import aiohttp
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class LimooError(Exception):
@@ -103,6 +106,7 @@ class LimooDriver:
             'j_username': username,
             'j_password': password,
         }
+        self._logprefix = f'{username}@{host}'
         self._session = aiohttp.ClientSession()
         self._authlock = asyncio.Lock()
         self._successful_auth_count = 0
@@ -115,10 +119,15 @@ class LimooDriver:
         return self._session.closed
 
     async def close(self):
-        if self.closed:
-            raise RuntimeError('Already closed.')
-        self.listener = None
-        await self._session.close()
+        if not self.closed:
+            try:
+                if self._listen_task:
+                    self._listen_task.cancel()
+                    await self._listen_task
+            except asyncio.CancelledError:
+                pass
+            finally:
+                await self._session.close()
 
     async def __aenter__(self):
         if self.closed:
@@ -184,7 +193,8 @@ class LimooDriver:
     async def _refresh(self):
         if self.closed:
             raise RuntimeError('Closed.')
-        await self._request(self._refresh_url, LimooDriver.Method.POST)
+        async with self._session.request('POST', self._refresh_url) as response:
+            await self._raise_for_status(response)
 
     async def send(self, conversation_id, body):
         return await self._with_auth(self._send, conversation_id, body=body)
@@ -220,36 +230,65 @@ LimooDriver.Method Enum.')
         self._listeners.remove(listener)
 
     def start_listening(self):
+        if self.closed:
+            raise RuntimeError('Closed.')
         if not self._listen_task:
             self._listen_task = asyncio.create_task(self._listen())
 
     def stop_listening(self):
+        if self.closed:
+            raise RuntimeError('Closed.')
         if self._listen_task:
             self._listen_task.cancel()
             self._listen_task = None
             
     async def _listen(self):
-        while True:
+        _LOGGER.info('%s: Listen task started.', self._logprefix)
+        cancel_ex = None
+        while not cancel_ex:
             ws = None
             retry_delay = 1
-            while not ws:
+            while not (ws or cancel_ex):
+                _LOGGER.info('%s: Going to connect a WebSocket.', self._logprefix)
                 try:
-                    ws, ws_context = await self._with_auth(self._connection)
-                except asyncio.CancelledError:
-                    raise
-                except Exception:
-                    await asyncio.sleep(retry_delay)
-                    if retry_delay < 256:
-                        retry_delay *= 2
+                    ws = await self._with_auth(self._connection)
+                except asyncio.CancelledError as ex:
+                    cancel_ex = ex
+                except Exception as ex:
+                    _LOGGER.error('%s: Connecting the WebSocket failed with the following exception: %s', self._logprefix, ex)
+                    _LOGGER.info('%s: Going to sleep for %d seconds before trying to connect a WebSocket.', self._logprefix, retry_delay)
+                    try:
+                        await asyncio.sleep(retry_delay)
+                    except asyncio.CancelledError as ex:
+                        cancel_ex = ex
+                    else:
+                        if retry_delay < 256:
+                            retry_delay *= 2
+            if cancel_ex:
+                continue
+            _LOGGER.info('%s: Connected the WebSocket.', self._logprefix)
+            connected = True
+            while connected and not cancel_ex:
+                try:
+                    event = await self._receive(ws)
+                except asyncio.CancelledError as ex:
+                    cancel_ex = ex
+                except Exception as ex:
+                    _LOGGER.error('%s: The connected WebSocket broke with the following exception: %s', self._logprefix, ex)
+                    connected = False
+                else:
+                    _LOGGER.debug('%s: Received a message creation event.', self._logprefix)
+                    self._fire(event)
             try:
-                async with ws_context:
-                    while True:
-                        event = await self._receive(ws)
-                        self._fire(event)
-            except asyncio.CancelledError:
-                raise
-            except Exception:
-                pass
+                await ws.close()
+            except asyncio.CancelledError as ex:
+                cancel_ex = ex
+            except Exception as ex:
+                _LOGGER.error('%s: Closing the WebSocket failed with the following exception: %s', self._logprefix, ex)
+            else:
+                _LOGGER.info('%s: The WebSocket was closed.', self._logprefix)
+        _LOGGER.info('%s: Listen task ended.', self._logprefix)
+        raise cancel_ex
 
     def _fire(self, event):
         for listener in self._listeners:
@@ -260,8 +299,8 @@ LimooDriver.Method Enum.')
             await coro
         except asyncio.CancelledError:
             raise
-        except Exception:
-            pass
+        except Exception as ex:
+            _LOGGER.error('%s: Executing a listener failed with the following exception: %s', self._logprefix, ex)
 
     async def _connection(self):
         async with contextlib.AsyncExitStack() as stack:
@@ -269,7 +308,8 @@ LimooDriver.Method Enum.')
                 self._websocket_url, receive_timeout=70, heartbeat=60))
             event = await ws.receive_json()
             if event['event'] == 'hello':
-                return ws, stack.pop_all()
+                stack.pop_all()
+                return ws
             else:
                 raise AuthFailed(event)
 
