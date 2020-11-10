@@ -6,36 +6,38 @@ A Python SDK for Limoo.
 *Give Limoo a try: https://web.limoo.im*
 
 ### Dependencies
-aiohttp >= 3.6
+aiohttp >= 3.7
 
 ### Example usage
 ```python
-# Create a new LimooDriver instance given limoo server, bot username and bot password
-async with LimooDriver('https://web.limoo.im/Limonad', 'test_bot_username', 'test_bot_password') as ld:
-    # find the id of the user we're logged in as
-    my_info = await ld.request(LimooDriver.Method.GET, 'user/items/self')
-    print(my_info['id'])
-    
-    # A listener which is notified whenever a new message is sent in any conversation of the workspace
-    async def listener(ld, event):
-        print(event['data']['message']['text'])
+import asyncio
+import contextlib
 
-        # Send a message in the thread of the new message (msg can be root of a thread only if its threadRootId is null)
-	if not event['data']['message']['thread_root_id']:
-	    body = {
-                'text': 'Got your message.',
-		'thread_root_id': event['data']['message']['thread_root_id'],
-            }
-            await ld.send(event['data']['message']['conversation_id'], body)
+from limoo import LimooDriver
 
-    # Register the listener
-    ld.add_listener(listener)
+async def respond(event):
+    # We only care about message creation events that are not caused by us
+    if event['event'] == 'message_created' and event['data']['message']['user_id'] != self['id']:
+        # Send a message to say we received the last message
+        await ld.messages.create(event['data']['workspace_id'], event['data']['message']['conversation_id'], 'got your message')
 
-    # Start listening
-    ld.start_listening()
+async def listen(ld):
+    forever = asyncio.get_running_loop().create_future()
+    # A WebSocket to receive events sent by the server
+    ld.start_websocket(lambda event: asyncio.create_task(respond(event)))
+    await forever
 
-    # Sleep for a five minutes
-    await asyncio.sleep(300)
+async def main():
+    global ld, self
+    async with contextlib.AsyncExitStack() as stack:
+        # Create a new LimooDriver instance given limoo server, bot username and bot password
+        ld = LimooDriver('web.limoo.im', 'bot_username', 'bot_password')
+        stack.push_async_callback(ld.close)
+	# Find information about the user we're logged in as
+        self = await ld.users.get()
+        await listen(ld)
+
+asyncio.run(main())
 ```
 
 ### Bot creation
