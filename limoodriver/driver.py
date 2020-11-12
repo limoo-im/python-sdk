@@ -13,7 +13,7 @@ from .exceptions import LimooAuthenticationError, LimooError
 _LOGGER = logging.getLogger('limoo')
 
 
-class LimooDriver:
+class Driver:
 
     _ALLOWED_CONNECTION_ATTEMPTS = 1000000
     _RETRY_DELAY = 2

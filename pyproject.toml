@@ -1,0 +1,14 @@
+[build-system]
+requires = ["flit_core >=2,<4"]
+build-backend = "flit_core.buildapi"
+
+[tool.flit.metadata]
+module = "limoodriver"
+author = "Soroosh Chabi"
+author-email = "chabi@limoo.im"
+home-page = "https://github.com/limoo-im/python-sdk"
+requires = ["aiohttp~=3.7"]
+description-file = "README.md"
+#classifiers =
+requires-python = ">=3.7"
+keywords = "limoo,bot,driver"
