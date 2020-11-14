@@ -3,7 +3,7 @@ requires = ["flit_core >=2,<4"]
 build-backend = "flit_core.buildapi"
 
 [tool.flit.metadata]
-module = "limooapiclient"
+module = "limoo"
 author = "Soroosh Chabi"
 author-email = "chabi@limoo.im"
 home-page = "https://github.com/limoo-im/python-sdk"
@@ -22,8 +22,8 @@ classifiers = [
   "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 requires-python = ">=3.7"
-dist-name = "limoo-api-python-client"
-keywords = "limoo,api,client"
+dist-name = "limoo-sdk"
+keywords = "limoo,sdk"
 
 [tool.flit.sdist]
 exclude = [".gitignore"]

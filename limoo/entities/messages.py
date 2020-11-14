@@ -3,8 +3,8 @@ from ..exceptions import LimooError
 
 class Messages:
 
-    def __init__(self, client):
-        self._client = client
+    def __init__(self, driver):
+        self._driver = driver
 
     _CREATE = 'workspace/items/{}/conversation/items/{}/message/items'
     async def create(self, workspace_id, conversation_id, text, *, thread_root_id=None, direct_reply_message_id=None):
@@ -30,4 +30,4 @@ class Messages:
                 raise LimooError('direct_reply_message_id can only be set when thread_root_id is also set.')
             if body['direct_reply_message_id'] == body['thread_root_id']:
                 raise LimooError('direct_reply_message_id cannot be equal to thread_root_id.')
-        return await self._client._execute_api_post(self._CREATE.format(workspace_id, conversation_id), body=body)
+        return await self._driver._execute_api_post(self._CREATE.format(workspace_id, conversation_id), body=body)
