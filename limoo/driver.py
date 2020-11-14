@@ -120,13 +120,13 @@ class LimooDriver:
         else:
             raise LimooError(f'Request returned unsuccessfully with status {status} and body {response_text}')
 
-    def start_websocket(self, event_handler):
+    def set_event_handler(self, event_handler):
+        if event_handler is not None and not callable(event_handler):
+            raise ValueError('event_handler must either be a callable or None.')
         self._event_handler = event_handler
-        if not self._listen_task:
+        if self._event_handler and not self._listen_task:
             self._listen_task = asyncio.create_task(self._listen())
-
-    def stop_websocket(self):
-        if self._listen_task:
+        elif not self._event_handler and self._listen_task:
             self._listen_task.cancel()
             self._listen_task = None
 
