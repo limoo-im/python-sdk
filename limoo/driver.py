@@ -7,10 +7,23 @@ import urllib.parse
 
 from aiohttp import ClientConnectionError, ClientPayloadError, ClientSession, FormData
 
-from .entities import Messages, Users
+from .entities import Files, Messages, Users
 from .exceptions import LimooAuthenticationError, LimooError
 
 _LOGGER = logging.getLogger('limoo')
+
+
+class StreamReader:
+
+    def __init__(self, response):
+        self._response = response
+
+    async def read(self):
+        try:
+            return await self._response.content.readany()
+        except (ClientConnectionError, ClientPayloadError) as ex:
+            await self._response.release()
+            raise LimooError from ex
 
 
 class LimooDriver:
@@ -30,10 +43,18 @@ class LimooDriver:
     async def _get_text_body(response):
         try:
             return await response.text()
-        except ClientConnectionError as ex:
-            raise LimooError('Connection Error') from ex
+        except (ClientConnectionError, ClientPayloadError) as ex:
+            raise LimooError from ex
         finally:
             await response.release()
+
+    @staticmethod
+    async def _get_json_body(response):
+        response_text = await LimooDriver._get_text_body(response)
+        try:
+            return json.loads(response_text)
+        except json.JSONDecodeError as ex:
+            raise LimooError('Response body is not valid json: {resonse_text}') from ex
 
     def _with_auth(coro):
         @functools.wraps(coro)
@@ -66,7 +87,7 @@ class LimooDriver:
         wss_url = f'wss://{limoo_url}'
         self._login_url = f'{https_url}/Limonad/j_spring_security_check'
         self._api_url_prefix = f'{https_url}/Limonad/api/v1'
-        self._fileop_url = f'{https_url}/fileserver/api/v1/file'
+        self._fileop_url = f'{https_url}/fileserver/api/v1/files'
         self._websocket_url = f'{wss_url}/Limonad/websocket'
         self._client_session = ClientSession()
         self._successful_login_count = 0
@@ -75,6 +96,7 @@ class LimooDriver:
         self._event_handler = lambda event: None
         self.users = Users(self)
         self.messages = Messages(self)
+        self.files = Files(self)
 
     async def close(self):
         if self._listen_task:
@@ -88,23 +110,27 @@ class LimooDriver:
     async def _login(self):
         await self._execute_request('POST', self._login_url, data=self._credentials)
 
-    def _create_api_url(self, endpoint):
-        return f'{self._api_url_prefix}/{endpoint}'
-
     @_with_auth
     async def _execute_api_get(self, endpoint):
-        return await self._execute_json_request('GET', self._create_api_url(endpoint))
+        return await self._execute_json_request('GET', endpoint)
 
     @_with_auth
     async def _execute_api_post(self, endpoint, body):
-        return await self._execute_json_request('POST', self._create_api_url(endpoint), body=body)
+        return await self._execute_json_request('POST', endpoint, body=body)
 
-    async def _execute_json_request(self, method, url, *, body=None):
-        response_text = await self._get_text_body(await self._execute_request(method, url, json=body))
-        try:
-            return json.loads(response_text)
-        except json.JSONDecodeError as ex:
-            raise LimooError('Response body is not valid json: {resonse_text}') from ex
+    async def _execute_json_request(self, method, endpoint, *, body=None):
+        return await self._get_json_body(await self._execute_request(method, f'{self._api_url_prefix}/{endpoint}', json=body))
+
+    @_with_auth
+    async def _upload_file(self, file, name, mime_type):
+        formdata = FormData(quote_fields=False)
+        formdata.add_field(name, file, content_type=mime_type, filename=name)
+        return await self._get_json_body(await self._execute_request('POST', self._fileop_url, data=formdata))
+
+    @_with_auth
+    async def _download_file(self, hash, name):
+        params = urllib.parse.urlencode({'hash': hash, 'name': name})
+        return StreamReader(await self._execute_request('GET', f'{self._fileop_url}?mode=download&{params}'))
 
     async def _execute_request(self, method, url, *, data=None, json=None):
         try:

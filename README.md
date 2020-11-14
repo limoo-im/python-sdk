@@ -12,28 +12,39 @@ aiohttp >= 3.7
 ```python
 import asyncio
 import contextlib
+import json
 
 from limoo import LimooDriver
 
 async def respond(event):
-    # We only care about message creation events that are not caused by us
     if event['event'] == 'message_created' and event['data']['message']['user_id'] != self['id']:
-        # Send a message to say we received the last message
-        await ld.messages.create(event['data']['workspace_id'], event['data']['message']['conversation_id'], 'got your message')
+        attached_files = list()
+        for file_data in event['data']['message']['files'] or list():
+            sr = await ld.files.download(file_data['hash'], file_data['name'])
+            with open(f'download/{file_data["name"]}', 'wb') as file:
+                data = await sr.read()
+                while data:
+                    file.write(data)
+                    data = await sr.read()
+            with open(f'download/{file_data["name"]}', 'rb') as file:
+                file_info = await ld.files.upload(file, file_data['name'], file_data['mime_type'])
+                file_info[0]['mime_type'] = file_info[0].pop('contentType')
+                attached_files.append(file_info[0])
+        message_id = event['data']['message']['id']
+        thread_root_id = event['data']['message']['thread_root_id']
+        direct_reply_message_id = event['data']['message']['thread_root_id'] and event['data']['message']['id']
+        response = await ld.messages.create(event['data']['workspace_id'], event['data']['message']['conversation_id'], event['data']['message']['text'], thread_root_id=thread_root_id or message_id, direct_reply_message_id=thread_root_id and message_id, files=attached_files)
 
 async def listen(ld):
     forever = asyncio.get_running_loop().create_future()
-    # A WebSocket to receive events sent by the server
-    ld.start_websocket(lambda event: asyncio.create_task(respond(event)))
+    ld.set_event_handler(lambda event: asyncio.create_task(respond(event)))
     await forever
 
 async def main():
     global ld, self
     async with contextlib.AsyncExitStack() as stack:
-        # Create a new LimooDriver instance given limoo server, bot username and bot password
-        ld = LimooDriver('web.limoo.im', 'bot_username', 'bot_password')
+        ld = LimooDriver('web.limoo.im', 'botusername', 'botpassword')
         stack.push_async_callback(ld.close)
-	# Find information about the user we're logged in as
         self = await ld.users.get()
         await listen(ld)
 
