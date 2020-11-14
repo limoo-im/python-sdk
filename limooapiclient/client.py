@@ -13,7 +13,7 @@ from .exceptions import LimooAuthenticationError, LimooError
 _LOGGER = logging.getLogger('limoo')
 
 
-class Driver:
+class Client:
 
     _ALLOWED_CONNECTION_ATTEMPTS = 1000000
     _RETRY_DELAY = 2
@@ -25,6 +25,15 @@ class Driver:
                 return await ws.receive_json()
             except ValueError:
                 continue
+
+    @staticmethod
+    async def _get_text_body(response):
+        try:
+            return await response.text()
+        except ClientConnectionError as ex:
+            raise LimooError('Connection Error') from ex
+        finally:
+            await response.release()
 
     def _with_auth(coro):
         @functools.wraps(coro)
@@ -83,33 +92,33 @@ class Driver:
         return f'{self._api_url_prefix}/{endpoint}'
 
     @_with_auth
-    async def execute_api_get(self, endpoint):
+    async def _execute_api_get(self, endpoint):
         return await self._execute_json_request('GET', self._create_api_url(endpoint))
 
     @_with_auth
-    async def execute_api_post(self, endpoint, body):
-        return await self._execute_json_request('POST', self._create_api_url(endpoint), json=body)
+    async def _execute_api_post(self, endpoint, body):
+        return await self._execute_json_request('POST', self._create_api_url(endpoint), body=body)
 
-    async def _execute_json_request(self, method, url, *, data=None, json=None):
-        response = await self._execute_request(method, url, data=data, json=json)
+    async def _execute_json_request(self, method, url, *, body=None):
+        response_text = await self._get_text_body(await self._execute_request(method, url, json=body))
         try:
-            return await response.json()
-        except (ClientConnectionError, json.JSONDecodeError) as ex:
-            await response.release()
-            raise LimooError from ex
+            return json.loads(response_text)
+        except json.JSONDecodeError as ex:
+            raise LimooError('Response body is not valid json: {resonse_text}') from ex
 
     async def _execute_request(self, method, url, *, data=None, json=None):
         try:
             response = await self._client_session.request(method, url, data=data, json=json)
         except ClientConnectionError as ex:
-            raise LimooError from ex
-        if not response.ok:
-            await response.release()
-            if response.status == 401:
-                raise LimooAuthenticationError
-            else:
-                raise LimooError(f'Request returned unsuccessfully with status {response.status} and message: {response.reason}')
-        return response
+            raise LimooError('Connection Error') from ex
+        status = response.status
+        if status < 400:
+            return response
+        response_text = await self._get_text_body(response)
+        if status == 401:
+            raise LimooAuthenticationError
+        else:
+            raise LimooError(f'Request returned unsuccessfully with status {status} and body {response_text}')
 
     def start_websocket(self, event_handler):
         self._event_handler = event_handler

@@ -3,12 +3,27 @@ requires = ["flit_core >=2,<4"]
 build-backend = "flit_core.buildapi"
 
 [tool.flit.metadata]
-module = "limoodriver"
+module = "limooapiclient"
 author = "Soroosh Chabi"
 author-email = "chabi@limoo.im"
 home-page = "https://github.com/limoo-im/python-sdk"
 requires = ["aiohttp~=3.7"]
 description-file = "README.md"
-#classifiers =
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Framework :: AsyncIO",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Topic :: Communications :: Chat",
+  "Topic :: Software Development :: Libraries",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
 requires-python = ">=3.7"
-keywords = "limoo,bot,driver"
+dist-name = "limoo-api-python-client"
+keywords = "limoo,api,client"
+
+[tool.flit.sdist]
+exclude = [".gitignore"]
