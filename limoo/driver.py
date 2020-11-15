@@ -7,7 +7,7 @@ import urllib.parse
 
 from aiohttp import ClientConnectionError, ClientPayloadError, ClientSession, FormData
 
-from .entities import Files, Messages, Users
+from .entities import Conversations, Files, Messages, Users
 from .exceptions import LimooAuthenticationError, LimooError
 
 _LOGGER = logging.getLogger('limoo')
@@ -97,6 +97,7 @@ class LimooDriver:
         self.users = Users(self)
         self.messages = Messages(self)
         self.files = Files(self)
+        self.conversations = Conversations(self)
 
     async def close(self):
         if self._listen_task:
