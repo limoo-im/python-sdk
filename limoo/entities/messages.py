@@ -35,9 +35,7 @@ class Messages:
             for file in files:
                 file_dtos.append({
                     'hash': str(file['hash']),
-                    'size': int(file['size']),
                     'name': str(file['name']),
-                    'mime_type': str(file['mime_type']),
                 })
             body['files'] = file_dtos
         return await self._driver._execute_api_post(self._CREATE.format(workspace_id, conversation_id), body=body)

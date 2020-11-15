@@ -28,7 +28,6 @@ async def respond(event):
                     data = await sr.read()
             with open(f'download/{file_data["name"]}', 'rb') as file:
                 file_info = await ld.files.upload(file, file_data['name'], file_data['mime_type'])
-                file_info[0]['mime_type'] = file_info[0].pop('contentType')
                 attached_files.append(file_info[0])
         message_id = event['data']['message']['id']
         thread_root_id = event['data']['message']['thread_root_id']
