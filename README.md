@@ -102,9 +102,8 @@ everything else will probably not be part of the API.
 
 ## Requirements
 
-Python >= 3.7
-
-[aiohttp](https://github.com/aio-libs/aiohttp) ~= 3.7
+* Python >= 3.7
+* [aiohttp](https://github.com/aio-libs/aiohttp) ~= 3.7
 
 ## Bot creation
 In order to create a bot, send the following command in your direct conversation with Limoo Bot:
