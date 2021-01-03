@@ -1,3 +1,6 @@
+import urllib.parse
+
+
 class Conversations:
 
     def __init__(self, driver):
@@ -5,21 +8,20 @@ class Conversations:
 
     _CREATE = 'workspace/items/{}/conversation/items'
     async def create(self, workspace_id, *, user_ids):
-        workspace_id = str(workspace_id)
-        if not workspace_id:
-            raise ValueError('workspace_id should not be an empty string.')
-        user_id_list = list()
-        for count, user_id in enumerate(user_ids, start=1):
-            if count > 2:
-                raise ValueError('user_ids must be an iterable of exactly two user IDs.')
-            user_id = str(user_id)
-            if not user_id:
-                raise ValueError('user_ids should be an iterable of non empty strings.')
-            user_id_list.append(user_id)
-        if len(user_id_list) < 2:
-            raise ValueError('user_ids must be an iterable of exactly two user IDs.')
         body = {
-            'user_ids': user_id_list,
+            'user_ids': user_ids,
             'type': 'direct',
         }
         return await self._driver._execute_api_post(self._CREATE.format(workspace_id), body=body)
+
+    _PUBLICS = 'workspace/items/{}/conversation/public'
+    async def publics (self, workspace_id, *, query=None, include_archived=None):
+        endpoint = self._PUBLICS.format(workspace_id)
+        params = dict()
+        if query:
+            params['query'] = query
+        if include_archived:
+            params['include_archived'] = include_archived
+        if params:
+            endpoint = f'{endpoint}?{urllib.parse.urlencode(params)}'
+        return await self._driver._execute_api_get(endpoint)
