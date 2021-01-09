@@ -7,7 +7,7 @@ import urllib.parse
 
 from aiohttp import ClientConnectionError, ClientPayloadError, ClientSession, FormData
 
-from .entities import Conversations, Files, Messages, Users
+from .entities import Conversations, Files, Messages, Users, Workspaces
 from .exceptions import LimooAuthenticationError, LimooError
 
 _LOGGER = logging.getLogger('limoo')
@@ -94,10 +94,11 @@ class LimooDriver:
         self._authlock = asyncio.Lock()
         self._listen_task = None
         self._event_handler = lambda event: None
-        self.users = Users(self)
-        self.messages = Messages(self)
-        self.files = Files(self)
         self.conversations = Conversations(self)
+        self.files = Files(self)
+        self.messages = Messages(self)
+        self.users = Users(self)
+        self.workspaces = Workspaces(self)
 
     async def close(self):
         if self._listen_task:
