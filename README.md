@@ -26,9 +26,13 @@ import json
 from limoo import LimooDriver
 
 async def respond(event):
-    # We have to make sure that the created message was not created by us.
+    # We only process events that inform us of new messages being created.
+    # We have to make sure that the created message is not a system message and
+    # that it was not created by us. Non-system messages have "null" as their
+    # "type".
     if (event['event'] == 'message_created'
-        and event['data']['message']['user_id'] != self['id']):
+        and not (event['data']['message']['type']
+                 or event['data']['message']['user_id'] == self['id'])):
         attached_files = list()
         for file_data in event['data']['message']['files'] or list():
             sr = await ld.files.download(file_data['hash'], file_data['name'])
