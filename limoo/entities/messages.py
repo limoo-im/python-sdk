@@ -14,5 +14,5 @@ class Messages:
         if direct_reply_message_id:
             body['direct_reply_message_id'] = direct_reply_message_id
         if files:
-            body['files'] = file_dtos
+            body['files'] = files
         return await self._driver._execute_api_post(self._CREATE.format(workspace_id, conversation_id), body=body)
