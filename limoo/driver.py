@@ -124,10 +124,14 @@ class LimooDriver:
         return await self._get_json_body(await self._execute_request(method, f'{self._api_url_prefix}/{endpoint}', json=body))
 
     @_with_auth
-    async def _upload_file(self, file, name, mime_type):
+    async def _upload_file(self, path, name, mime_type):
         formdata = FormData(quote_fields=False)
-        formdata.add_field(name, file, content_type=mime_type, filename=name)
-        return await self._get_json_body(await self._execute_request('POST', self._fileop_url, data=formdata))
+        run_async = asyncio.get_running_loop().run_in_executor
+        async with contextlib.AsyncExitStack() as stack:
+            file = await run_async(None, open, path, 'rb')
+            stack.push_async_callback(run_async, None, file.close)
+            formdata.add_field(name, file, content_type=mime_type, filename=name)
+            return await self._get_json_body(await self._execute_request('POST', self._fileop_url, data=formdata))
 
     @_with_auth
     async def _download_file(self, hash, name):
