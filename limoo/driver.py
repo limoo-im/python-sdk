@@ -89,7 +89,7 @@ class LimooDriver:
         self._api_url_prefix = f'{https_url}/Limonad/api/v1'
         self._fileop_url = f'{https_url}/fileserver/api/v1/files'
         self._websocket_url = f'{wss_url}/Limonad/websocket'
-        self._client_session = ClientSession()
+        self._client_session = ClientSession(cookie_jar=CookieJar(unsafe=True))
         self._successful_login_count = 0
         self._authlock = asyncio.Lock()
         self._listen_task = None
