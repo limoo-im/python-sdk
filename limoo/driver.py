@@ -5,7 +5,7 @@ import json
 import logging
 import urllib.parse
 
-from aiohttp import ClientConnectionError, ClientPayloadError, ClientSession, FormData
+from aiohttp import ClientConnectionError, ClientPayloadError, ClientSession, CookieJar, FormData
 
 from .entities import Conversations, Files, Messages, Users, Workspaces
 from .exceptions import LimooAuthenticationError, LimooError
@@ -76,19 +76,19 @@ class LimooDriver:
                         previous_slc = self._successful_login_count
         return wrapper
 
-    def __init__(self, limoo_url, bot_username, bot_password):
+    def __init__(self, limoo_url, bot_username, bot_password, secure=True):
         self._credentials = {
             'j_username': bot_username,
 	    'j_password': bot_password,
         }
         if limoo_url.endswith('/'):
             limoo_url = limoo_url[:-1]
-        https_url = f'https://{limoo_url}'
-        wss_url = f'wss://{limoo_url}'
-        self._login_url = f'{https_url}/Limonad/j_spring_security_check'
-        self._api_url_prefix = f'{https_url}/Limonad/api/v1'
-        self._fileop_url = f'{https_url}/fileserver/api/v1/files'
-        self._websocket_url = f'{wss_url}/Limonad/websocket'
+        http_url = f'http{"s" if secure else ""}://{limoo_url}'
+        ws_url = f'ws{"s" if secure else ""}://{limoo_url}'
+        self._login_url = f'{http_url}/Limonad/j_spring_security_check'
+        self._api_url_prefix = f'{http_url}/Limonad/api/v1'
+        self._fileop_url = f'{http_url}/fileserver/api/v1/files'
+        self._websocket_url = f'{ws_url}/Limonad/websocket'
         self._client_session = ClientSession(cookie_jar=CookieJar(unsafe=True))
         self._successful_login_count = 0
         self._authlock = asyncio.Lock()
