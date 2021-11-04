@@ -13,5 +13,3 @@ class Workspaces:
     _GET_MEMBERS = 'workspace/items/{}/members'
     async def members(self, workspace_id):
         return await self._driver._execute_api_get(self._GET_MEMBERS.format(workspace_id))
-    
-    
