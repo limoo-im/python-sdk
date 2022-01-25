@@ -79,10 +79,12 @@ class LimooDriver:
     def __init__(self, limoo_url, bot_username, bot_password, secure=True):
         self._credentials = {
             'j_username': bot_username,
-	    'j_password': bot_password,
+	        'j_password': bot_password,
         }
         if limoo_url.endswith('/'):
             limoo_url = limoo_url[:-1]
+        if limoo_url.startswith('https://') or limoo_url.startswith('http://'):
+            limoo_url.replace('https://', '').replace('http://', '')
         http_url = f'http{"s" if secure else ""}://{limoo_url}'
         ws_url = f'ws{"s" if secure else ""}://{limoo_url}'
         self._login_url = f'{http_url}/Limonad/j_spring_security_check'
