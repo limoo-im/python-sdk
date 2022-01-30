@@ -76,6 +76,14 @@ class LimooDriver:
                         previous_slc = self._successful_login_count
         return wrapper
 
+    def _strip_scheme(self, url):
+        if url is not None:
+            parsed = urllib.parse.urlparse(url)
+            scheme = "%s://" % parsed.scheme
+            return parsed.geturl().replace(scheme, '', 1)
+        return None
+
+
     def __init__(self, limoo_url, bot_username, bot_password, secure=True):
         self._credentials = {
             'j_username': bot_username,
@@ -83,8 +91,7 @@ class LimooDriver:
         }
         if limoo_url.endswith('/'):
             limoo_url = limoo_url[:-1]
-        if limoo_url.startswith('https://') or limoo_url.startswith('http://'):
-            limoo_url.replace('https://', '').replace('http://', '')
+        limoo_url = self._strip_scheme(limoo_url)
         http_url = f'http{"s" if secure else ""}://{limoo_url}'
         ws_url = f'ws{"s" if secure else ""}://{limoo_url}'
         self._login_url = f'{http_url}/Limonad/j_spring_security_check'
