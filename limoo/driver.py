@@ -217,7 +217,7 @@ class LimooDriver:
     @_with_auth
     async def _try_connecting(self):
         async with contextlib.AsyncExitStack() as stack:
-            ws = await stack.enter_async_context(self._client_session.ws_connect(self._websocket_url, receive_timeout=70, heartbeat=60)
+            ws = await stack.enter_async_context(self._client_session.ws_connect(self._websocket_url, receive_timeout=70, heartbeat=60))
             event = await self._receive_event(ws)
             if event.get('event') == 'authentication_failed':
                 raise LimooAuthenticationError
