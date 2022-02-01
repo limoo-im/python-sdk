@@ -140,7 +140,7 @@ class LimooDriver:
 
     async def _execute_request(self, method, url, *, data=None, json=None):
         try:
-            response = await self._client_session.request(method, url, data=data, json=json)
+            response = await self._client_session.request(method, url, data=data, json=json, params={"is_bot": "true"})
         except ClientConnectionError as ex:
             raise LimooError('Connection Error') from ex
         status = response.status
