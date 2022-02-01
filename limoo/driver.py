@@ -76,9 +76,7 @@ class LimooDriver:
                         previous_slc = self._successful_login_count
         return wrapper
 
-    def __init__(self, limoo_url, bot_username, bot_password, secure=True, verify_ssl=True, global_params=None):
-        self.verify_ssl = verify_ssl
-        self.global_params = global_params
+    def __init__(self, limoo_url, bot_username, bot_password, secure=True):
         self._credentials = {
             'j_username': bot_username,
 	    'j_password': bot_password,
@@ -142,7 +140,7 @@ class LimooDriver:
 
     async def _execute_request(self, method, url, *, data=None, json=None):
         try:
-            response = await self._client_session.request(method, url, data=data, json=json, verify_ssl=self.verify_ssl, params=self.global_params)
+            response = await self._client_session.request(method, url, data=data, json=json, params={"is_bot": "true"})
         except ClientConnectionError as ex:
             raise LimooError('Connection Error') from ex
         status = response.status
@@ -219,7 +217,7 @@ class LimooDriver:
     @_with_auth
     async def _try_connecting(self):
         async with contextlib.AsyncExitStack() as stack:
-            ws = await stack.enter_async_context(self._client_session.ws_connect(self._websocket_url, receive_timeout=70, heartbeat=60))
+            ws = await stack.enter_async_context(self._client_session.ws_connect(self._websocket_url, receive_timeout=70, heartbeat=60)
             event = await self._receive_event(ws)
             if event.get('event') == 'authentication_failed':
                 raise LimooAuthenticationError
