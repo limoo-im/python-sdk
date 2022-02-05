@@ -77,11 +77,13 @@ class LimooDriver:
         return wrapper
 
     def _strip_scheme(self, url):
+        is_secure = False
         if url is not None:
             parsed = urllib.parse.urlparse(url)
             scheme = "%s://" % parsed.scheme
-            return parsed.geturl().replace(scheme, '', 1)
-        return None
+            is_secure = ("https" in scheme)
+            return parsed.geturl().replace(scheme, '', 1), scheme, is_secure
+        return None, None, is_secure
 
 
     def __init__(self, limoo_url, bot_username, bot_password, secure=True):
@@ -91,7 +93,9 @@ class LimooDriver:
         }
         if limoo_url.endswith('/'):
             limoo_url = limoo_url[:-1]
-        limoo_url = self._strip_scheme(limoo_url)
+        limoo_url, scheme, is_secure = self._strip_scheme(limoo_url)
+        if scheme or scheme != '://':
+            secure = is_secure
         http_url = f'http{"s" if secure else ""}://{limoo_url}'
         ws_url = f'ws{"s" if secure else ""}://{limoo_url}'
         self._login_url = f'{http_url}/Limonad/j_spring_security_check'
