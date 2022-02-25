@@ -1,2 +1,5 @@
 # build output
 /dist/
+
+# CPython's compiled bytecodes
+__pycache__/
