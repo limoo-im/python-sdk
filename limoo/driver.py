@@ -76,26 +76,17 @@ class LimooDriver:
                         previous_slc = self._successful_login_count
         return wrapper
 
-    def _strip_scheme(self, url):
-        is_secure = False
-        if url is not None:
-            parsed = urllib.parse.urlparse(url)
-            scheme = "%s://" % parsed.scheme
-            is_secure = ("https" in scheme)
-            return parsed.geturl().replace(scheme, '', 1), scheme, is_secure
-        return None, None, is_secure
-
-
     def __init__(self, limoo_url, bot_username, bot_password, secure=True):
+        # Catch a relatively common mistake and report an informative error
+        assert not limoo_url.startswith(('http://', 'https://')), (
+            'The URL of the Limoo server should not start with'
+            f' "http://" or "https://". The received URL was "{limoo_url}"')
         self._credentials = {
             'j_username': bot_username,
-	        'j_password': bot_password,
+            'j_password': bot_password,
         }
         if limoo_url.endswith('/'):
             limoo_url = limoo_url[:-1]
-        limoo_url, scheme, is_secure = self._strip_scheme(limoo_url)
-        if scheme or scheme != '://':
-            secure = is_secure
         http_url = f'http{"s" if secure else ""}://{limoo_url}'
         ws_url = f'ws{"s" if secure else ""}://{limoo_url}'
         self._login_url = f'{http_url}/Limonad/j_spring_security_check'
