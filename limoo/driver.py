@@ -77,9 +77,13 @@ class LimooDriver:
         return wrapper
 
     def __init__(self, limoo_url, bot_username, bot_password, secure=True):
+        # Catch a relatively common mistake and report an informative error
+        assert not limoo_url.startswith(('http://', 'https://')), (
+            'The URL of the Limoo server should not start with'
+            f' "http://" or "https://". The received URL was "{limoo_url}"')
         self._credentials = {
             'j_username': bot_username,
-	    'j_password': bot_password,
+            'j_password': bot_password,
         }
         if limoo_url.endswith('/'):
             limoo_url = limoo_url[:-1]
