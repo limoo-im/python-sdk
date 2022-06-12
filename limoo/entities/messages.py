@@ -7,7 +7,7 @@ class Messages:
         self._driver = driver
 
     _CREATE = 'workspace/items/{}/conversation/items/{}/message/items'
-    async def create(self, workspace_id, conversation_id, text, *, thread_root_id=None, direct_reply_message_id=None, files=None):
+    async def create(self, workspace_id, conversation_id, text, *, thread_root_id=None, direct_reply_message_id=None, files=None, message_type=None):
         body = {'text': text}
         if thread_root_id:
             body['thread_root_id'] = thread_root_id
@@ -15,6 +15,8 @@ class Messages:
             body['direct_reply_message_id'] = direct_reply_message_id
         if files:
             body['files'] = files
+        if message_type:
+            body['type'] = message_type
         return await self._driver._execute_api_post(self._CREATE.format(workspace_id, conversation_id), body=body)
 
     _SEND = 'workspace/items/{}/message/items'
