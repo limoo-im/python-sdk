@@ -43,8 +43,8 @@ class Conversations:
             endpoint = f'{endpoint}?{urllib.parse.urlencode(params)}'
         return await self._driver._execute_api_get(endpoint)
 
-    _ADD = "workspace/items/{}/conversation/items/{}/members/batch"
-    async def add_users(self, workspace_id, conversation_id, users):
+    _ADDـMEMBERS = "workspace/items/{}/conversation/items/{}/members/batch"
+    async def add_members(self, workspace_id, conversation_id, users):
         endpoint = self._ADD.format(workspace_id, conversation_id)
         body = users
         return await self._driver._execute_api_post(endpoint, body=body)
