@@ -45,7 +45,7 @@ class Conversations:
 
     _ADDـMEMBERS = "workspace/items/{}/conversation/items/{}/members/batch"
     async def add_members(self, workspace_id, conversation_id, users):
-        endpoint = self._ADD.format(workspace_id, conversation_id)
+        endpoint = self._ADDـMEMBERS.format(workspace_id, conversation_id)
         body = users
         return await self._driver._execute_api_post(endpoint, body=body)
 
