@@ -21,7 +21,6 @@ class Conversations:
             body["display_name"] = display_name
         
         if icon_hash:
-            print(icon_hash)
             body["icon_hash"] = icon_hash
         return await self._driver._execute_api_post(self._CREATE.format(workspace_id), body=body)
 
@@ -67,7 +66,7 @@ class Conversations:
 
     _CHANGE_ROLES = "workspace/items/{}/conversation/items/{}/members/items/{}/roles"
     async def change_member_roles(self, workspace_id, conversation_id, user_id, roles):
-        body =  roles
+        body = roles
         endpoint = self._CHANGE_ROLES.format(workspace_id, conversation_id, user_id)
         return await self._driver._execute_api_post(endpoint, body=body)
 
