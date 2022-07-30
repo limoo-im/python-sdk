@@ -142,10 +142,13 @@ class LimooDriver:
         params = urllib.parse.urlencode({'hash': hash, 'name': name})
         return StreamReader(await self._execute_request('GET', f'{self._fileop_url}?mode=download&{params}'))
 
-    async def _execute_request(self, method, url, *, data=None, json=None):
+    async def _execute_request(self, method, url, *, data=None, json=None, remain_retry=2):
         try:
             response = await self._client_session.request(method, url, data=data, json=json, params={"is_bot": "true"})
         except ClientConnectionError as ex:
+            if remain_retry > 0:
+                await asyncio.sleep(1)
+                return await self._execute_request(self, method, url, data, json, remain_retry - 1)
             raise LimooError('Connection Error') from ex
         status = response.status
         if status < 400:
