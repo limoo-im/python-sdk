@@ -124,6 +124,10 @@ class LimooDriver:
     async def _execute_api_post(self, endpoint, body):
         return await self._execute_json_request('POST', endpoint, body=body)
 
+    @_with_auth
+    async def _execute_api_delete(self, endpoint):
+        return await self._execute_json_request('DELETE', endpoint)
+
     async def _execute_json_request(self, method, endpoint, *, body=None):
         return await self._get_json_body(await self._execute_request(method, f'{self._api_url_prefix}/{endpoint}', json=body))
 
