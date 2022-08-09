@@ -76,7 +76,7 @@ class LimooDriver:
                         previous_slc = self._successful_login_count
         return wrapper
 
-    def __init__(self, limoo_url, bot_username, bot_password, secure=True):
+    def __init__(self, limoo_url, bot_username, bot_password, secure=True, max_requests_retry=2):
         # Catch a relatively common mistake and report an informative error
         assert not limoo_url.startswith(('http://', 'https://')), (
             'The URL of the Limoo server should not start with'
@@ -98,6 +98,7 @@ class LimooDriver:
         self._authlock = asyncio.Lock()
         self._listen_task = None
         self._event_handler = lambda event: None
+        self._max_requests_retry = max_requests_retry
         self.conversations = Conversations(self)
         self.files = Files(self)
         self.messages = Messages(self)
@@ -146,16 +147,17 @@ class LimooDriver:
         params = urllib.parse.urlencode({'hash': hash, 'name': name})
         return StreamReader(await self._execute_request('GET', f'{self._fileop_url}?mode=download&{params}'))
 
-    async def _execute_request(self, method, url, *, data=None, json=None, remain_retry=2, retry_attempts=0):
-        try:
-            response = await self._client_session.request(method, url, data=data, json=json, params={"is_bot": "true"})
-        except ClientConnectionError as ex:
-            if remain_retry > 0:
+    async def _execute_request(self, method, url, *, data=None, json=None):
+        for retry_attempts in range(self._max_requests_retry):
+            try:
+                response = await self._client_session.request(method, url, data=data, json=json, params={"is_bot": "true"})
+                break
+            except ClientConnectionError as ex:
                 _LOGGER.error(f'Connection Error for sending request: {ex}')
                 await asyncio.sleep(2 + 2 * retry_attempts)
-                _LOGGER.info(f'Retry to send request, attempt number: {retry_attempts}')
-                return await self._execute_request(self, method, url, data, json, remain_retry - 1, retry_attempts + 1)
-            raise LimooError('Connection Error') from ex
+                _LOGGER.info(f'Retry to send request, attempt number: {retry_attempts + 1}')
+        else:
+            raise LimooError('Connection Error')
         status = response.status
         if status < 400:
             return response
