@@ -69,6 +69,12 @@ class Conversations:
         body = roles
         endpoint = self._CHANGE_ROLES.format(workspace_id, conversation_id, user_id)
         return await self._driver._execute_api_post(endpoint, body=body)
+    
+    _UPDATE = "workspace/items/{}/conversation/items/{}"
+    async def update(self, workspace_id, conversation_id, update_body):
+        endpoint = self._UPDATE.format(workspace_id, conversation_id)
+        return await self._driver._execute_api_post(endpoint, body=update_body)
+
 
 
 
